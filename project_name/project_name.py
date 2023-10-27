@@ -16,7 +16,7 @@ ROOT_URLCONF=__name__,
 MIDDLEWARE_CLASSES=(
         'django.middleware.common.CommonMiddleware',
         'django.middleware.csrf.CsrfViewMiddleware',
-         'django.middleware.cickjacking.XFrameOptionsMiddleware',
+         'django.middleware.clickjacking.XFrameOptionsMiddleware',
     ),
 )
 #precisamos definir as configurações antes de fazer qualquer importação no Django, pois algumas partes do framework esperam que as configurações estejam definidas antes de poderem ser importadas. Normalmente isso não será um problema, pois estas configurações estarão incluídas no arquivo settings.py. O arquivo gerado pelo comando startproject tambémincluirá configurações para itens que não serão usados neste exemplo, ex.: internacionalização e recursos estáticos
