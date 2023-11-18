@@ -1,0 +1,26 @@
+{% load staticfiles %}
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="utf-8">
+        <title>Imagens Placeholder Django</title>
+        <link rel="stylesheet" href="{% static 'site.css'%} " type = "text.css">
+    </head>
+    <body>
+        <h1>Images Placeholder Django</h1>
+        <p>Este servidor pode ser usado para servir imagens de Placeholder (guardador de lugar)  nos tamanhos que voce precisar para qualquer web page</p>
+        <p> Para requisitar uma imagem placholder, de um determindado altura e largura, simplesmente inclua uma imagem com o caminho apontando para <b>/image/&lt;width&gt;/</b>
+            neste servidor como: </p>
+        <pre>
+            &lt;img src="{{ example }}" &gt;
+        </pre>
+        <h2>Examples<h2>
+            <ul>
+                <li><img src="{% url 'placeholder' width=50 height=50%}"></li>
+                <li><img src="{% url 'placeholder' width=100 height=50%}"></li>
+                <li><img src="{% url 'placeholder' width=50 height=100%}"></li>
+            </ul>                
+                <script src="" async defer></script> 
+    </body>
+</html>

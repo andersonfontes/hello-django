@@ -28,9 +28,9 @@ from django.http import HttpResponse
 # O django é MTv - A parte referente a VIEW normalmente inspeciona a solicitação HTTP de entrada e faz queries ou compõeos dados necessários a serem enviados à camada de apresentação
 
 
-def index(request):
-    banana = "color:blue;"
-    return HttpResponse(f"<h1>Titulo</h1><h2 style={banana}>eu sou um h2</h2>")
+# def index(request):
+#     banana = "color:blue;"
+#     return HttpResponse(f"<h1>Titulo</h1><h2 style={banana}>eu sou um h2</h2>")
 
 
 urlpatterns = (re_path(r"^$", index),)

@@ -7,11 +7,12 @@ from django.conf import settings
 DEBUG = os.environ.get('DEBUG','on') == 'on',
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-v7lu7^y3a7*0q4&ne^5po3macl^5v4#2x)ata8ejy0b3)c=#4q')
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost').split(',')
+BASE_DIR = os.path.dirname(__file__)
 
 #essa configuração coloca em modo debugging e inclui uma SECRET KEY não-aletoria, que nao deverá ser usada no ambiente de produção
-#uma chave secreta devará sergerada para a sessão default para a proteção contra CSRF (Cross-Site Request Forgery). É importante que qualquer site de proução tenha uma secret key aleatoria que permaneça privada. Para saber mais sobre esse assunto acesse documentação: https://docs.djangoproject.com/en/1.7/topics/signing
+#uma chave secreta devará ser gerada para a sessão default para a proteção contra CSRF (Cross-Site Request Forgery). É importante que qualquer site de proução tenha uma secret key aleatoria que permaneça privada. Para saber mais sobre esse assunto acesse documentação: https://docs.djangoproject.com/en/1.7/topics/signing
 settings.configure( 
-DEBUG = DEBUG
+DEBUG = DEBUG,
 SECRET_KEY = SECRET_KEY,
 ROOT_URLCONF=__name__,
 MIDDLEWARE_CLASSES=(
@@ -19,10 +20,17 @@ MIDDLEWARE_CLASSES=(
         'django.middleware.csrf.CsrfViewMiddleware',
          'django.middleware.clickjacking.XFrameOptionsMiddleware',
     ),
+
+INSTALLED_APPS = ('django.contrib.staticfiles',),
+TEMPLATE_DIRS =  (os.path.join(BASE_DIR,'templates'),),
+STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static'),),
+STATIC_URL = '/static/'
 )
-#precisamos definir as configurações antes de fazer qualquer importação no Django, pois algumas partes do framework esperam que as configurações estejam definidas antes de poderem ser importadas. Normalmente isso não será um problema, pois estas configurações estarão incluídas no arquivo settings.py. O arquivo gerado pelo comando startproject tambémincluirá configurações para itens que não serão usados neste exemplo, ex.: internacionalização e recursos estáticos
-from django.urls import include, re_path
-from django.conf import url
+
+
+#precisamos definir as configurações antes de fazer qualquer importação no Django, pois algumas partes do framework esperam que as configurações estejam definidas antes de poderem ser importadas. Normalmente isso não será um problema, pois estas configurações estarão incluídas no arquivo settings.py. O arquivo gerado pelo comando startproject também incluirá configurações para itens que não serão usados neste exemplo, ex.: internacionalização e recursos estáticos
+from django.urls import include, re_path, reverse
+#from django.conf import url
 
 #formulario de validacao para validar conteudo do POST e do GET
 from django import forms 
@@ -32,37 +40,59 @@ from django import forms
 from django.core.wsgi import get_wsgi_application
 
 from django.http import HttpResponse , HttpResponseBadRequest
-#O django é MTv - A parte referente a VIEW normalmente inspeciona a solicitação HTTP de entrada e faz queries ou compõeos dados necessários a serem enviados à camada de apresentação
+#O django é MTV - A parte referente a VIEW normalmente inspeciona a solicitação HTTP de entrada e faz queries ou compõeos dados necessários a serem enviados à camada de apresentação
 
 from django.views.decorators.http import etag 
 
 from django.core.cache import cache
-    # Utilizando caching para reduzir as reuisições - sempre que um novo formato deimagem for gerado sera armazenado em cache, se não tiver no cache ele cria uma novo, se tiver eleusa a aque tem. 
+    # Utilizando caching para reduzir as reuisições - sempre que um novo formato de imagem for gerado sera armazenado em cache, se não tiver no cache ele cria uma novo, se tiver ele usa a aque tem. 
     # Há duas opções em que podemos pensar ao determinar a maneira de utilizar caching nesse serviço: o lado do servidor e o lado do cliente. Para caching do lado do servidor, podemos utilizar facilmente os recursos de cache do Django. Uma troca será feira entre a memória usada para armazenar os valores em cache e os ciclos da CPU necessários para gerar as imagens 
 
-    #generate_etag é uma função nova que recebe os mermos arg da view placholder. Ela usa o hashlib para retornar um valor opaco de etag, que variará de acordo com valores de width e height
+    #generate_etag é uma função nova que recebe os mesmos arg da view placholder. Ela usa o hashlib para retornar um valor opaco de etag, que variará de acordo com valores de width e height
     #a função generate_etag sera passada ao decorador etag na view placeholder
 
+#from django.core.urlresolvers import reverse ---> agora esta na django.urls
+    #A view index atualizada cria uma uma URL de exemplo ao usar reverse na view placeholder, e o passa ao contexto do template
 
-
-
+from django.shortcuts import render
+    #O template home.html é renderizado com o uso do atalho render
 
 def index(request):
-    banana="color:blue;"
-    return HttpResponse(f'<h1>Titulo OLÁ MUNDO</h1><h2 style={banana}>eu sou um h2 azul</h2>')
+    example = reverse('placeholder', kwargs={'width':50,'height':50})
+    context = {
+        'example': request.build_absolute_uri(example)
+    }
+    return render (request, 'home.html', context)
+
+def generate_etag(request, width, height):
+    content = 'Placeholder: {0} x {1}'.format(width,height)
+    return hashlib.sha1(content.encode('utf-8')).hexdigest()
+
+@etag(generate_etag)        
+def placeholder(request,width,height):
+    #TODO: o restante da view sera inserido aqui
+    # return HttpResponse('Ok')
+    form = ImageForm( {'height': height , 'width': width} )
+    if form.is_valid():
+        image = form.generate()
+        return HttpResponse(image, content_type='image/png')
+        # TODO: GERAR UMA IMAGEM DO TAMANHO SOLICITADO
+        return HttpResponse('Ok')
+    
+    # para criar uma imagem no pillow, dois argumentos sao necessario: o MODO associado à cor e ao tamanho na forma de uma tupla. Essa view usará o modo RGB e o tamanho recebido dos valores validados do form. Ha um 3o argumento nao-obrigatório que define a cor da imagem, que por padrão será preto
+    else:
+        return HttpResponseBadRequest('Invalid Image Request')
 
 #ROTAS
 urlpatterns = (
     # re_path(r'^$', index),
-    url(r'image/(?P<width>[0-9]+)x(?P<height>[0-9]+)/$', placeholder, name='placeholder'), 
-    url(r'^$',index,name='homepage'),
+    re_path(r'image/(?P<width>[0-9]+)x(?P<height>[0-9]+)/$', placeholder, name='placeholder'), 
+    re_path(r'^$',index,name='homepage'),
 )
 
 application = get_wsgi_application()
 
-if __name__=="__main__":
-    from django.core.management import execute_from_command_line
-    execute_from_command_line(sys.argv)
+
 
 from io import BytesIO
 from PIL import Image,ImageDraw
@@ -100,30 +130,19 @@ class ImageForm(forms.Form):
     #Uma abordagem complementar consiste em focar no comportamento do lado cliente e usar o caching incluído no navegador.O Django inclui um decorador (decorator) etag para usar e gerar cabeçalhos ETag para a view . O decorador recebe um único argumento, que éuma função para gerar o cabeçalho ETag a partir da solicitação e dos argumetnos da view. 
 
 
-def generate_etag(request, width, height):
-    content = 'Placeholder: {0} x {1}'.format(width,height)
-    return hashlib.sha1(content.encode('utf-8')).hexdigest()
 
 
 
-@etag(generate_etag)    
-    
-def placeholder(request,width,height):
-    #TODO: o restante da view sera inserido aqui
-    # return HttpResponse('Ok')
-    form = ImageForm( {'height': height , 'width': width} )
-    if form.is_valid():
-        image = form.generate()
-        return HttpResponse(image, content_type='image/png')
-        # TODO: GERAR UMA IMAGEM DO TAMANHO SOLICITADO
-        return HttpResponse('Ok')
-    
-    # para criar uma imagem no pillow, dois argumentos sao necessario: o MODO associado à cor e ao tamanho na forma de uma tupla. Essa view usará o modo RGB e o tamanho recebido dos valores validados do form. Ha um 3o argumento nao-obrigatório que define a cor da imagem, que por padrão será preto
+def index(request):
+    example = reverse('placeholder', kwargs={'width':50,'height':50})
+    context = {
+        'example': request.build_absolute_uri(example)
+    }
+    return render (request, 'home.html', context)
 
-    else:
-        return HttpResponseBadRequest('Invalid Image Request')
-
-
+if __name__=="__main__":
+    from django.core.management import execute_from_command_line
+    execute_from_command_line(sys.argv)
 
 #MAIS SOBRE CACHE COM ETAG - TIRADO DO STACK OVERFLOW:
 # De forma sucinta, ETag é um mecanismo do HTTP para validação condicional de cache.
